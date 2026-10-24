@@ -21,15 +21,11 @@ For implied volatility, I first implemented a simple incremental search, then di
 
 Finally, I used the following synthetic volatility function to generate different option prices depending on strike and maturity:
 
-\[
-\sigma(K,T)=\sigma_0+a\left(\frac{K}{S_0}-1\right)^2+be^{-T}
-\]
+sigma(K,T)= sigma_0 + a * (K/S0 - 1)^2 + b * e^(-T)
 
 The objective was to recover these initial volatilities using the IV solvers and construct a volatility surface.
 
 ## Results & Observations
-
-<AsyncImage query="Black Scholes Greeks implied volatility smile 3D volatility surface Python matplotlib visualization" aspectRatio="16:9" fallback={<text color="secondary" size="sm">Insert project output screenshot here.</text>}/>
 
 A few observations I made while working on the project:
 
