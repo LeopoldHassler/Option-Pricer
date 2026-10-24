@@ -6,6 +6,8 @@ from mpl_toolkits.mplot3d import Axes3D
 import random as rd
 import numpy as np
 
+# This part implements a Black-Scholes-Merton European option pricing framework with chosen inputs
+
 def BSM_pricer(S0,K,r,T,sigma,option_type):
     d1 = (mt.log(S0/K)+(r+sigma**2/2)*T)/(sigma*mt.sqrt(T))
     d2 = d1 - sigma*mt.sqrt(T)
@@ -16,6 +18,9 @@ def BSM_pricer(S0,K,r,T,sigma,option_type):
     else : 
         return "Option type incorrect - please indicate either call or put"
     return option_price
+
+# We have the option to keep the default inputs or change them
+# The code repeats the question until either "yes" or "no" has been entered
 
 input_choice = input("Do you wish to modify the existing inputs ? (yes/no) : ").lower()
 
@@ -73,6 +78,9 @@ h_T = 1/365
 upper_interval = int(K*1.5)
 lower_interval = int(K*0.5)
 
+# This part uses 2 different methods to compute the Greeks of the option calculated above:
+# Central Finite Differences (using the h values defined above) and analytical differentiation of the BSM formula
+
 def numerical_delta(S0,K,r,T,sigma,option_type,h) :
     delta = (BSM_pricer(S0+h,K,r,T,sigma,option_type) - BSM_pricer(S0-h,K,r,T,sigma,option_type))/(2*h)
     return delta
@@ -128,6 +136,9 @@ def analytical_theta(S0,K,r,T,sigma,option_type) :
     else :
         theta = - (S0*st.norm.pdf(d1)*sigma)/(2*mt.sqrt(T))+r*K*mt.exp(-r*T)*st.norm.cdf(-d2)
     return theta
+
+# Here we check put-call parity to see if the pricer is working as intended
+# We also calculate the intrinsic and time value of the option, as well as the error between our two methods for calculating the Greeks
 
 for S0 in range(lower_interval,upper_interval+1) :
     opt_price = BSM_pricer(S0,K,r,T,sigma,option_type)
@@ -187,6 +198,9 @@ print("\nMaximum Delta error : " + str(max(delta_error)) +
       "\nMaximum Rho error : " + str(max(rho_error)) + 
       "\nMaximum Theta error : " + str(max(theta_error)))
 
+# This part dives into Implied Volatility, IV Smiles and Surfaces
+# We generate multiple synthetic market prices using our pricer and a volatility function based on moneyness and maturity, then extract the Implied Volatility using 3 different methods
+
 S0 = float(input("\nSpot price for IV : "))
 K_IV = int(rd.uniform(S0*0.5,S0*1.5))
 K_test = []
@@ -202,6 +216,18 @@ Smile_market_price = []
 Smile_sigma = []
 
 market_price = BSM_pricer(S0, K_IV, r, T, sigma, option_type)
+
+# The first IV method consists of obtaining the implied volatility through iteration
+# We start with a low volatility and increase it by 0.00001 at each iteration, comparing the resulting option price to the market price
+# We stop once the calculated price reaches or exceeds the market price
+
+# This method is quite simple. However, it is less precise than the other methods used and takes more time
+# as requiring greater precision means using smaller steps and therefore more iterations
+
+# Before starting this method, we check whether the market price is within the prices obtained using our volatility brackets
+# or in other words, whether a solution can be found within our chosen interval
+
+# The method is also limited to 50,000 iterations to avoid running indefinitely
 
 def implied_volatility_solver(S0, K_IV, r, T, sigma, market_price, option_type) :
     count = 0
@@ -221,6 +247,13 @@ def implied_volatility_solver(S0, K_IV, r, T, sigma, market_price, option_type) 
             print("Too many iterations : method stopped")
             return None
     return sigma    
+
+# This method uses dichotomy, which consists of taking the middle of an interval containing the sigma that would produce our market price
+# We then compare the price obtained using this middle value to the market price and observe the sign of their difference
+
+# If the difference is positive, the middle of the initial interval becomes our new upper bound
+# If the difference is negative, it becomes our new lower bound
+# We repeat this process until the interval becomes sufficiently small, allowing us to estimate the implied volatility
 
 def implied_volatility_dichotomy(S0, K_IV, r, T, market_price, option_type) :
     sigma_up = up_bracket
@@ -242,11 +275,26 @@ def implied_volatility_dichotomy(S0, K_IV, r, T, market_price, option_type) :
         return None
     return IV  
 
+# This final method serves as a benchmark for the other implemented methods
+# It uses a SciPy function (brentq), which is a root-finding algorithm that finds a root of a continuous function
+# within a valid bracketing interval [a, b]
+
+# We use it to compare the accuracy of our own methods by looking at the difference between the obtained IV
+# and the original sigma used to generate the synthetic market price
+
 def implied_volatility_brentq(sigma):
     diff = BSM_pricer(S0, K_IV, r, T, sigma, option_type) - market_price
     return diff
 
 IV = brentq(implied_volatility_brentq, down_bracket, up_bracket)
+
+# Here we explore IV Smiles and Surfaces
+# We first define a function that produces different sigmas depending on moneyness (K/S0) and maturity (T)
+
+# The Smile looks at how IV behaves when K changes while maturity stays constant
+# The Surface looks at how IV behaves when both K and T change, while the other inputs stay constant
+
+# The volatility function is synthetic and was chosen to illustrate these relationships rather than reproduce actual market data
 
 IV_smile_test = []
 
@@ -306,6 +354,10 @@ for K, T, sigma, Imp_vol_1, Imp_vol_2, Imp_vol_3, *_ in IV_smile_test:
     IV_surface[-1].append(Imp_vol_1)
 
     previous_K = K  
+
+# This part is solely for visualisation purposes, using Matplotlib to observe our Greeks, Smile and Surface
+# This allows us to see how the Greeks behave depending on moneyness and option type
+# as well as how implied volatility changes across strikes and maturities
 
 fig, axes = plt.subplots(3,3, figsize=(12,10), constrained_layout=True)
 
@@ -409,8 +461,11 @@ ax_surface.view_init(elev=25, azim=-135)
 
 plt.show()
 
+# This project was particularly interesting as I tried to implement various methods to achieve the same results
+# allowing me to check my calculations while also exploring tools I was already familiar with
 
-
+# The visualisation part was partly produced with AI assistance especially for the IV Surface, while the rest of the project was written by myself
+# with the help of library documentation and questions asked to AI
 
 
     
